@@ -38,9 +38,9 @@ class Printer:
     def check_dir(self):
         if not os.path.exists(self.save_dir):
             os.makedirs(self.save_dir, exist_ok=True)
-            logger.info(f'[i] Создал папку для вывода {self.save_dir}')
+            logger.info(f'[i] Created a folder for the output files {self.save_dir}')
         else:
-            logger.info(f'[i] Результаты будут тут {self.save_dir}')
+            logger.info(f'[i] The results will be here {self.save_dir}')
 
 
     def to_excel(self, table_data: list):
@@ -49,7 +49,7 @@ class Printer:
         file_name = f'{self.file_name}.xlsx'
         try:
             df.to_excel(self.save_dir + file_name, index=False)
-            logger.info(f'[✨] Файл {file_name} сформирован.')
+            logger.info(f'[✨] The {file_name} file was created.')
         except Exception as ex:
             logger.error(str(ex))
 
@@ -61,7 +61,7 @@ class Printer:
             for row in table_data:
                 complete_proxy = f'{str.lower(row[4])}://{row[0]}:{row[1]}\n'
                 file.write(complete_proxy)
-        logger.info(f'[⚙] Файл {file_name} сформирован.')
+        logger.info(f'[⚙] The {file_name} file was created.')
 
 
 class Parser:
@@ -95,15 +95,14 @@ class Parser:
 
 
     def wait_user(self, hint: Optional[bool] = False):
-        response = input(f'{"для продолжения введи y" if hint else ""}: ')
+        response = input(f'{"To continue, type y" if hint else ""}: ')
         if response != 'y':
             self.wait_user()
 
     def proccess_page(self, current_page):
         tbody = self.driver.find_element(By.TAG_NAME, 'tbody')
         self.tables.append(tbody.get_attribute('outerHTML'))
-        logger.info(
-            f'[!] Жми на {current_page+1} страницу, как перейдешь, введи y')
+        logger.info(f'[!] Click on {current_page+1} page, once you get there, type y')
         self.wait_user()
 
     def proccess_table(self):
@@ -123,15 +122,14 @@ class Parser:
 
     def run(self):
         self.driver.get(self.url_complete)
-        logger.info('[!] Как только капча будет решена, введи: y')
+        logger.info('[!] Once the captcha is solved, type: y')
         self.wait_user()
 
-        logger.info('[?] Введи количество страниц')
+        logger.info('[?] Enter the number of pages')
         pages = int(input(': '))
         for page in range(pages):
             self.proccess_page(page)
 
         self.driver.close()
         self.proccess_table()
-        logger.info('[👌] Работа окончена.')
-
+        logger.info("[👌] The job's over.")
