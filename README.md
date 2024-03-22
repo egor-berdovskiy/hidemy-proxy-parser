@@ -1,10 +1,13 @@
 # HideMy proxy parser
-Install dependencies, then customize to your requirements config.ini, run main.py
+Install dependencies.
 ```
 pip install -r requirements.txt
+```
+then customize to your requirements config.ini
+run main.py
+```
 py main.py
 ```
-
 # Config file
 [Parser]
 1. base_url — do not touch
