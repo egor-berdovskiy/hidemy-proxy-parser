@@ -1,9 +1,9 @@
 # HideMy proxy parser
-Install dependencies.
+Install dependencies
 ```
 pip install -r requirements.txt
 ```
-then customize to your requirements config.ini
+then customize to your requirements config.ini</br>
 run main.py
 ```
 py main.py
