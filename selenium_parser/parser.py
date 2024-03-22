@@ -1,5 +1,9 @@
 from selenium import webdriver
 from selenium.webdriver.common.by import By
+from selenium.common.exceptions import NoSuchElementException
+
+from random_user_agent.user_agent import UserAgent
+from random_user_agent.params import SoftwareName, OperatingSystem
 
 from datetime import datetime
 
@@ -12,6 +16,8 @@ from loguru import logger
 from typing import Optional
 
 from uuid import uuid4
+
+import time
 
 import os
 
@@ -65,14 +71,27 @@ class Printer:
 
 
 class Parser:
+    # Random user agent
+    software_names = [SoftwareName.CHROME.value]
+    operating_systems = [OperatingSystem.WINDOWS.value, OperatingSystem.LINUX.value] 
+    user_agent_rotator = UserAgent(software_names=software_names, operating_systems=operating_systems, limit=100)
+
+    user_agent = user_agent_rotator.get_random_user_agent()
+
+    # Driver
     options = webdriver.FirefoxOptions()
-    options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/89.0.4389.82 Safari/537.36")
+    options.add_argument(f"user-agent={user_agent}")
+    options.add_argument(f"--disable-blink-features=AutomationControlled")
 
     driver = webdriver.Firefox(options=options)
 
     # Storage
     tables = []  # raw table data
     table_data = []  # ip, port, country, ping, protocol, uptime
+
+    # Options
+    silent_mode: bool
+    next_page_delay: float
 
     def __init__(
             self,
@@ -84,10 +103,15 @@ class Parser:
             proxy_count: str = 'all',
             save_dir: str = '/output',
             file_marker: str = 'date',
+            silent_mode: bool = False,
+            next_page_delay: float = 5,
     ) -> None:
         self.url = url
         self.params = f'/?country={countries}&maxtime={max_time}&ports={ports}&type={type}#list'
         self.url_complete = self.url + self.params
+
+        self.silent_mode = silent_mode
+        self.next_page_delay = next_page_delay
 
         self.printer = Printer(proxy_count, save_dir, file_marker)
 
@@ -99,11 +123,34 @@ class Parser:
         if response != 'y':
             self.wait_user()
 
+    
+    def get_max_page(self, last_page: int):
+        answer = input('[run/max_page]: ')
+        if answer == 'run':
+            return int(last_page)
+        else:
+            return int(answer)
+            
+
+
+    def goto_next_page(self):
+        pagination = self.driver.find_element(By.CLASS_NAME, 'pagination')
+        try:
+            next_page_btn = pagination.find_element(By.CLASS_NAME, 'next_array')
+            next_page_btn.click()
+            logger.info(f'[i] Wait {self.next_page_delay} sec')
+            time.sleep(self.next_page_delay)
+        except NoSuchElementException as ex:
+            logger.info('[!] All pages done.')
+        except Exception as ex:
+            logger.error(ex)
+        
+        
+
     def proccess_page(self, current_page):
         tbody = self.driver.find_element(By.TAG_NAME, 'tbody')
         self.tables.append(tbody.get_attribute('outerHTML'))
-        logger.info(f'[!] Click on {current_page+1} page, once you get there, type y')
-        self.wait_user()
+        self.goto_next_page()
 
     def proccess_table(self):
         for table in self.tables:
@@ -118,18 +165,26 @@ class Parser:
         self.printer.to_excel(self.table_data)
         self.printer.to_txt(self.table_data)
 
-    
 
     def run(self):
         self.driver.get(self.url_complete)
         logger.info('[!] Once the captcha is solved, type: y')
         self.wait_user()
 
-        logger.info('[?] Enter the number of pages')
-        pages = int(input(': '))
-        for page in range(pages):
-            self.proccess_page(page)
+        last_page = int(self.driver.find_element(By.CLASS_NAME, 'pagination').text.split('\n')[-1])
+
+        time_start = time.time()
+        if self.silent_mode:
+            logger.info(f'[i] Last page: {last_page}.')
+            for i, page in enumerate(range(last_page)):
+                self.proccess_page(page)
+                logger.info(f'[{i+1}/{last_page}] Done.')
+        else:
+            logger.info(f'[i] Last page: {last_page}, run or enter max page?')
+            logger.info(f'[i] To skip this dialog, enable silent mode in the settings.')
+            answer = self.get_max_page(last_page)
 
         self.driver.close()
         self.proccess_table()
-        logger.info("[👌] The job's over.")
+
+        logger.info(f"[👌] The job's over. {(time.time() - time_start):.1f} sec.")

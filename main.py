@@ -14,6 +14,8 @@ def main():
         proxy_count=OutputOptions.proxy_count,
         save_dir=OutputOptions.save_dir,
         file_marker=OutputOptions.file_marker,
+        silent_mode=ParserOptions.silent_mode,
+        next_page_delay=ParserOptions.next_page_delay,
     )
     parser.run()
 

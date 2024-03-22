@@ -12,6 +12,8 @@ class Parser:
     max_time = parser.get(section, 'max_time')
     type = parser.get(section, 'type')  # h + s (http + https)
     countries = parser.get(section, 'countries')  # KZ + RU + ??
+    silent_mode = parser.getboolean(section, 'silent_mode')
+    next_page_delay = parser.getfloat(section, 'next_page_delay')
 
 
 class Output:
